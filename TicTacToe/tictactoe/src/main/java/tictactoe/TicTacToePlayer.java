@@ -1,5 +1,7 @@
 package tictactoe;
 
+import java.net.*;
+import java.io.*;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.event.MouseEvent;
@@ -7,11 +9,15 @@ import java.awt.event.MouseEvent;
 import javax.swing.JPanel;
 import javax.swing.event.MouseInputListener;
 
-public class TicTacToePanel extends JPanel implements MouseInputListener {
+import javax.swing.JFrame;
+import javax.swing.WindowConstants;
 
+public class TicTacToePlayer extends JPanel implements MouseInputListener{
     private static final int SIZE = 3;
     private static final int ROW = SIZE;
     private static final int COL = SIZE;
+    public static final int WINDOW_WIDTH = 400;
+    public static final int WINDOW_HEIGHT = 400;
 
     private static final int NOTHING = 0;
     private static final int CROSS = 1;
@@ -29,7 +35,13 @@ public class TicTacToePanel extends JPanel implements MouseInputListener {
     private int winRow = -1;
     private int typeOfWin = -1;
 
-    private boolean flag = true;
+    private int otherPlayer;
+    private ClientSideConnection csc;
+
+    private int playerID;
+    private int turnsMade = 0;
+    private int maxTurns;
+    private boolean buttonsEnabled;
 
     private int widthGapBetweenHorizontalLines = getWidth() / 3;
     private int heightGapBetweenVerticalLines = getHeight() / 3;
@@ -38,7 +50,7 @@ public class TicTacToePanel extends JPanel implements MouseInputListener {
 
     private Color backgroundColor = new Color(217, 213, 212);
 
-    public TicTacToePanel() {
+    public TicTacToePlayer() {
         setFocusable(true);
         grabFocus();
         fillGrid();
@@ -61,7 +73,7 @@ public class TicTacToePanel extends JPanel implements MouseInputListener {
         fillBackground(g);
         drawLines(g);
         drawGame(g);
-        checkAndWin(g);    
+        checkAndWin(g); 
     }
 
     private void fillBackground(Graphics g) {
@@ -123,8 +135,6 @@ public class TicTacToePanel extends JPanel implements MouseInputListener {
                 break;
             default: break;
         }
-
-            
     }
 
     private int getHorizontalProduct(int col) {
@@ -157,18 +167,28 @@ public class TicTacToePanel extends JPanel implements MouseInputListener {
 
     @Override
     public void mousePressed(MouseEvent e) {
-        if(typeOfWin != -1) return;
+        System.out.println(buttonsEnabled);
+        if(typeOfWin != -1 || !buttonsEnabled) return;
 
         int col = e.getY() / heightGapBetweenVerticalLines;
         int row = e.getX() / widthGapBetweenHorizontalLines;
 
         if(grid[col][row] != NOTHING) return;
 
-        if(flag) 
+        if(playerID == 1) 
             grid[col][row] = CROSS;
         else 
             grid[col][row] = CIRCLE;
-        flag = !flag;
+
+        turnsMade++;
+        buttonsEnabled = false;
+        csc.sendButtonNum(col*3 + row);
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                updateTurn();
+            }
+        });
+        t.start();
 
         if(getHorizontalProduct(col) == CIRCLE_WIN || getHorizontalProduct(col) == CROSS_WIN) {
             typeOfWin = HORIZONTAL;
@@ -203,4 +223,91 @@ public class TicTacToePanel extends JPanel implements MouseInputListener {
     @Override
     public void mouseMoved(MouseEvent e) {}
 
+    //Client connection Inner class (fancy stuff)
+    private class ClientSideConnection {
+        private Socket socket;
+        private DataInputStream dataIn;
+        private DataOutputStream dataOut;
+        public ClientSideConnection(){
+            System.out.println("----Client----");
+            try{
+                socket = new Socket("localhost", 5000);
+                dataIn = new DataInputStream(socket.getInputStream());
+                dataOut = new DataOutputStream(socket.getOutputStream());
+                // first thing sent from server is int containing playerID
+                playerID = dataIn.readInt();
+                if(playerID == 1){
+                    buttonsEnabled = true;
+                    maxTurns = 5;
+                } else{
+                    buttonsEnabled = false;
+                    maxTurns = 4;
+                    Thread t = new Thread(new Runnable() {
+                        public void run(){
+                            // TODO updateTurn is called before csc is created, error needs to be fixed
+                            updateTurn();
+                        }
+                    });
+                    t.start();
+                }
+                System.out.println("Connected to server as number: " + playerID);
+                System.out.println("Max turns: " + maxTurns);
+
+            } catch (IOException ex){
+                System.out.println("IOException from ClientSideConnection constructor");
+            }
+        }
+
+        public void sendButtonNum(int n){
+            try{
+                dataOut.writeInt(n);
+                dataOut.flush();
+            } catch (IOException ex){
+                System.out.println("IOException from sendButtonNum() CSC");
+            }
+        }
+
+        public int receiveButtonNum(){
+            int n = -1;
+            try{
+                n = dataIn.readInt();
+                System.out.println("Player #" + otherPlayer + "clicked button #" + n);
+            } catch (IOException ex){
+                System.out.println("IOEsception from receiveButtonNum() CSC");
+            }
+            return n;
+        }
+    }
+
+    public void connectToServer(){
+        csc = new ClientSideConnection();
+    }
+
+    public void updateTurn(){
+        int n = csc.receiveButtonNum();
+        buttonsEnabled = true;
+        // TODO implement what n does
+
+    }
+    
+    public static void main(String[] args) {
+        TicTacToePlayer t = new TicTacToePlayer();
+        t.connectToServer();
+
+        JFrame frame = new JFrame();
+        frame.setTitle("TicTacToe " + t.playerID);
+        frame.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
+
+        frame.getContentPane().add(t);
+        frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+        if(t.playerID == 1){
+            // TODO maybe message to show which player has to go first
+            t.otherPlayer = 2;
+        } else{
+            t.otherPlayer = 1;
+        }
+
+        frame.setVisible(true);
+        frame.setResizable(false);
+    }
 }
