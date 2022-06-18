@@ -76,7 +76,7 @@ public class Server {
             try{
                 dataOut.writeInt(playerID);
                 dataOut.flush();
-                while(true){
+                while(turnsMade != maxTurns || !isWon){
                     	if(playerID == 1){
                             player1ButtonNum = dataIn.readInt();
                             System.out.println("Player 1 clicked Button #" + player1ButtonNum);
@@ -86,10 +86,12 @@ public class Server {
                             System.out.println("Player 2 clicked Button #" + player2ButtonNum);
                             player1.sendButtonNum(player2ButtonNum);
                         }
+                        turnsMade++;
                 }
             } catch (IOException ex){
                 System.out.println("IOException from run() SSC");
             }
+            System.out.println("Player #"+ playerID+ " finished the game.");
         }
 
         public void sendButtonNum(int n){
@@ -101,8 +103,6 @@ public class Server {
             }
         }
     }
-
-
 
     public static void main(String[] args) {
         Server gs = new Server();

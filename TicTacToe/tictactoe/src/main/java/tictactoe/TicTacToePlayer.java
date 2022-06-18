@@ -8,7 +8,6 @@ import java.awt.event.MouseEvent;
 
 import javax.swing.JPanel;
 import javax.swing.event.MouseInputListener;
-
 import javax.swing.JFrame;
 import javax.swing.WindowConstants;
 
@@ -51,6 +50,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
     private Color backgroundColor = new Color(217, 213, 212);
 
     public TicTacToePlayer() {
+        csc = new ClientSideConnection();
         setFocusable(true);
         grabFocus();
         fillGrid();
@@ -167,7 +167,6 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
 
     @Override
     public void mousePressed(MouseEvent e) {
-        System.out.println(buttonsEnabled);
         if(typeOfWin != -1 || !buttonsEnabled) return;
 
         int col = e.getY() / heightGapBetweenVerticalLines;
@@ -182,6 +181,11 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
 
         turnsMade++;
         buttonsEnabled = false;
+
+        System.out.println("-----------------------------------------------");
+        System.out.println("You clicked button #" + (col*COL + row));
+        System.out.println("-----------------------------------------------");
+
         csc.sendButtonNum(col*3 + row);
         Thread t = new Thread(new Runnable() {
             public void run() {
@@ -190,19 +194,34 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         });
         t.start();
 
+        checkForWin(col, row);
+
+        repaint();
+    }
+
+    private void checkForWin(int col, int row){
         if(getHorizontalProduct(col) == CIRCLE_WIN || getHorizontalProduct(col) == CROSS_WIN) {
             typeOfWin = HORIZONTAL;
             winCol = col;
+            buttonsEnabled = false;
+            csc.closeConnection();
         } else if(getVerticalProduct(row) == CIRCLE_WIN || getVerticalProduct(row) == CROSS_WIN) {
             typeOfWin = VERTICAL;
             winRow = row;
+            buttonsEnabled = false;
+            csc.closeConnection();
         } else if(getLDRUDiagonalProduct() == CIRCLE_WIN || getLDRUDiagonalProduct() == CROSS_WIN) {
             typeOfWin = LDRU;
+            buttonsEnabled = false;
+            csc.closeConnection();
         } else if(getLURDDiagonalProduct() == CIRCLE_WIN || getLURDDiagonalProduct() == CROSS_WIN) {
             typeOfWin = LURD;
+            buttonsEnabled = false;
+            csc.closeConnection();
+        } else if(turnsMade >= maxTurns){
+            buttonsEnabled = false;
+            csc.closeConnection();
         }
-
-        repaint();
     }
 
     @Override
@@ -236,22 +255,6 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
                 dataOut = new DataOutputStream(socket.getOutputStream());
                 // first thing sent from server is int containing playerID
                 playerID = dataIn.readInt();
-                if(playerID == 1){
-                    buttonsEnabled = true;
-                    maxTurns = 5;
-                } else{
-                    buttonsEnabled = false;
-                    maxTurns = 4;
-                    Thread t = new Thread(new Runnable() {
-                        public void run(){
-                            // TODO updateTurn is called before csc is created, error needs to be fixed
-                            updateTurn();
-                        }
-                    });
-                    t.start();
-                }
-                System.out.println("Connected to server as number: " + playerID);
-                System.out.println("Max turns: " + maxTurns);
 
             } catch (IOException ex){
                 System.out.println("IOException from ClientSideConnection constructor");
@@ -271,28 +274,53 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
             int n = -1;
             try{
                 n = dataIn.readInt();
-                System.out.println("Player #" + otherPlayer + "clicked button #" + n);
+                System.out.println("-----------------------------------------------");
+                System.out.println("Player #" + otherPlayer + " clicked button #" + n);
+                System.out.println("-----------------------------------------------");
             } catch (IOException ex){
-                System.out.println("IOEsception from receiveButtonNum() CSC");
+                System.out.println("IOException from receiveButtonNum() CSC");
             }
             return n;
         }
-    }
 
-    public void connectToServer(){
-        csc = new ClientSideConnection();
+        public void closeConnection(){
+            try{
+                socket.close();
+                System.out.println("----Connection closed----");
+            } catch(IOException ex){
+                System.out.println("IOException on closeConnection() CSC");
+            }
+        }
     }
 
     public void updateTurn(){
-        int n = csc.receiveButtonNum();
+        if(isWon()){
+            return;
+        }
+        int buttonNumber = csc.receiveButtonNum();
+        int col = buttonNumber/COL;
+        int row = buttonNumber%ROW;
         buttonsEnabled = true;
-        // TODO implement what n does
+        turnsMade++;
+        if(buttonNumber >= 0){
+            if(playerID == 1){
+                grid[col][row] = CIRCLE;
+            } else{
+                grid[col][row] = CROSS;
+            }
+            checkForWin(col, row);
+        } else {
+            System.out.println("game over!");
+        }
+        repaint();
+    }
 
+    private boolean isWon(){
+        return typeOfWin >= 0;
     }
     
     public static void main(String[] args) {
-        TicTacToePlayer t = new TicTacToePlayer();
-        t.connectToServer();
+        final TicTacToePlayer t = new TicTacToePlayer();
 
         JFrame frame = new JFrame();
         frame.setTitle("TicTacToe " + t.playerID);
@@ -300,12 +328,22 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
 
         frame.getContentPane().add(t);
         frame.setSize(WINDOW_WIDTH, WINDOW_HEIGHT);
+        t.maxTurns = 9;
         if(t.playerID == 1){
-            // TODO maybe message to show which player has to go first
             t.otherPlayer = 2;
+            t.buttonsEnabled = true;
         } else{
             t.otherPlayer = 1;
+            t.buttonsEnabled = false;
+            Thread b = new Thread(new Runnable() {
+                public void run(){
+                    t.updateTurn();
+                }
+            });
+            b.start();
         }
+        System.out.println("Connected to server as number: " + t.playerID);
+        System.out.println("Max turns: " + t.maxTurns);
 
         frame.setVisible(true);
         frame.setResizable(false);
