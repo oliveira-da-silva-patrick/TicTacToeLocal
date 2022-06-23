@@ -12,6 +12,7 @@ The second player can then register an input themselves and send it to the serve
 The server uses a ServerSideConnection inner class, which uses a socket, as well as DataInput and output streams to send packets between players.
 Each player uses a ClientSideConnection inner class to accomplish the same.
 Buttons are disabled when it is not the players turn, which is accomplished by correctly disabling and enabling the mousePressed() method that checks the input.
+In case of a draw, the server also shuts down correctly, as it, as well as the players, counts the number of turns made.
 
 ## How to run the game
 Firstly, the server has to be started, which waits for both players to connect. This can be done by running the main method of the Server class.
