@@ -129,6 +129,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         return true;
     }
 
+    // draws lines in case of a win
     public void checkAndWin(Graphics g) {
 
         if(typeOfWin == -1 && !isGridFull()) return;
@@ -202,6 +203,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         return product;
     }
 
+    // checks the mouse position and converts it to a position in the 2D game array
     @Override
     public void mousePressed(MouseEvent e) {
         if(typeOfWin != -1 || !buttonsEnabled) return;
@@ -224,6 +226,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         System.out.println("-----------------------------------------------");
 
         csc.sendButtonNum(col*3 + row);
+        // starts a thread waiting for input (to not block the UI) using the updateTurn() method
         Thread t = new Thread(new Runnable() {
             public void run() {
                 updateTurn();
@@ -239,6 +242,9 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         repaint();
     }
 
+    /**
+     * checks for a win and closes the connection accordingly
+     */
     private void checkForWin(int col, int row){
         if(getHorizontalProduct(col) == CIRCLE_WIN || getHorizontalProduct(col) == CROSS_WIN) {
             typeOfWin = HORIZONTAL;
@@ -301,6 +307,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
             }
         }
 
+        // sends the pressed button position to the server
         public void sendButtonNum(int n){
             try{
                 dataOut.writeInt(n);
@@ -310,6 +317,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
             }
         }
 
+        // receives the pressed button position from the server
         public int receiveButtonNum(){
             int n = -1;
             try{
@@ -323,6 +331,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
             return n;
         }
 
+        // closes the connection to the server
         public void closeConnection(){
             try{
                 socket.close();
@@ -333,6 +342,9 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         }
     }
 
+    /**
+     * receives the button number & correctly repaints the panel
+     */
     public void updateTurn(){
         if(isWon()){
             return;
@@ -357,6 +369,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         return typeOfWin >= 0;
     }
     
+    // starts the frame and initialized the players
     public static void main(String[] args) {
         final TicTacToePlayer t = new TicTacToePlayer();
 
@@ -373,6 +386,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         } else {
             t.otherPlayer = 1;
             t.buttonsEnabled = false;
+            // as the first player always starts, player 2 is started here, and begins listening by calling updateturn()
             Thread b = new Thread(new Runnable() {
                 public void run(){
                     t.updateTurn();
