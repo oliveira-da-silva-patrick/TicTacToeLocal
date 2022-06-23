@@ -4,6 +4,10 @@ import java.net.*;
 import java.io.*;
 import java.awt.Color;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.BasicStroke;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.event.MouseEvent;
 
 import javax.swing.JPanel;
@@ -117,21 +121,54 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
                 else if(grid[i][j] == CIRCLE) drawCircle(i, j, g);
     }
 
-    public void checkAndWin(Graphics g) {
-        g.setColor(Color.GREEN);
+    private boolean isGridFull() {
+        for(int i = 0; i < COL; i++)
+            for(int j = 0; j < ROW; j++)
+                if(grid[i][j] == NOTHING)
+                    return false;
+        return true;
+    }
 
+    public void checkAndWin(Graphics g) {
+
+        if(typeOfWin == -1 && !isGridFull()) return;
+
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setStroke(new BasicStroke(3));
+
+        Font font = new Font("TimesRoman", Font.PLAIN, 40);
+        FontMetrics metrics = g.getFontMetrics(font);
+
+        g2.setFont(font); 
+        g2.setColor(Color.BLUE);
+        String text;
+        if(playerID == 1 && turnsMade%2 == 1 || playerID == 2 && turnsMade%2 == 0) {
+            g2.setColor(Color.GREEN);
+            text = "YOU WON!";
+        } else {
+            g2.setColor(Color.RED);
+            text = "YOU LOSE!";
+        }
+
+        if(typeOfWin == -1) {
+            g2.setColor(Color.CYAN);
+            text = "DRAW!";
+        }
+        g2.drawString(text, getWidth() / 2 - metrics.stringWidth(text) / 2, getHeight() / 2);
+        
+        g2.setStroke(new BasicStroke(2));
         switch(typeOfWin) {
             case HORIZONTAL:
-                g.drawLine(10, (int) ((winCol + 0.5) * heightGapBetweenVerticalLines), getWidth() - 10, (int) ((winCol + 0.5) * heightGapBetweenVerticalLines));
+                g2.drawLine(10, (int) ((winCol + 0.5) * heightGapBetweenVerticalLines), getWidth() - 10, (int) ((winCol + 0.5) * heightGapBetweenVerticalLines));
                 break;
             case VERTICAL:
-                g.drawLine((int) ((winRow + 0.5) * widthGapBetweenHorizontalLines), 10, (int) ((winRow + 0.5) * widthGapBetweenHorizontalLines), getHeight() - 10);
+                g2.drawLine((int) ((winRow + 0.5) * widthGapBetweenHorizontalLines), 10, (int) ((winRow + 0.5) * widthGapBetweenHorizontalLines), getHeight() - 10);
                 break;
             case LDRU:
-                g.drawLine(10, getHeight() - 10, getWidth() - 10, 10);
+                g2.drawLine(10, getHeight() - 10, getWidth() - 10, 10);
                 break;
             case LURD:
-                g.drawLine(10, 10, getWidth() - 10, getHeight() - 10);
+                g2.drawLine(10, 10, getWidth() - 10, getHeight() - 10);
                 break;
             default: break;
         }
@@ -332,7 +369,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
         if(t.playerID == 1){
             t.otherPlayer = 2;
             t.buttonsEnabled = true;
-        } else{
+        } else {
             t.otherPlayer = 1;
             t.buttonsEnabled = false;
             Thread b = new Thread(new Runnable() {
@@ -342,6 +379,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
             });
             b.start();
         }
+
         System.out.println("Connected to server as number: " + t.playerID);
         System.out.println("Max turns: " + t.maxTurns);
 
