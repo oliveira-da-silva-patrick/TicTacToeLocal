@@ -233,6 +233,9 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
 
         checkForWin(col, row);
 
+        if(typeOfWin != -1)
+            csc.sendButtonNum(-10);
+
         repaint();
     }
 
@@ -294,7 +297,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
                 playerID = dataIn.readInt();
 
             } catch (IOException ex){
-                System.out.println("IOException from ClientSideConnection constructor");
+                //System.out.println("IOException from ClientSideConnection constructor");
             }
         }
 
@@ -303,7 +306,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
                 dataOut.writeInt(n);
                 dataOut.flush();
             } catch (IOException ex){
-                System.out.println("IOException from sendButtonNum() CSC");
+                //System.out.println("IOException from sendButtonNum() CSC");
             }
         }
 
@@ -315,7 +318,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
                 System.out.println("Player #" + otherPlayer + " clicked button #" + n);
                 System.out.println("-----------------------------------------------");
             } catch (IOException ex){
-                System.out.println("IOException from receiveButtonNum() CSC");
+                //System.out.println("IOException from receiveButtonNum() CSC");
             }
             return n;
         }
@@ -325,7 +328,7 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
                 socket.close();
                 System.out.println("----Connection closed----");
             } catch(IOException ex){
-                System.out.println("IOException on closeConnection() CSC");
+                //System.out.println("IOException on closeConnection() CSC");
             }
         }
     }
@@ -346,8 +349,6 @@ public class TicTacToePlayer extends JPanel implements MouseInputListener{
                 grid[col][row] = CROSS;
             }
             checkForWin(col, row);
-        } else {
-            System.out.println("game over!");
         }
         repaint();
     }

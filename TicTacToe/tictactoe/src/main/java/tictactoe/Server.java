@@ -29,7 +29,7 @@ public class Server {
         try{
             serverSocket = new ServerSocket(5000);
         } catch (IOException ex){
-            System.out.println("IOException from Gameserver Constructor");
+            //System.out.println("IOException from Gameserver Constructor");
         }
     }
 
@@ -51,7 +51,7 @@ public class Server {
             }
             System.out.println("No longer accepting connections.");
         } catch (IOException ex){
-            System.out.println("IOException from acceptConnections");
+            //System.out.println("IOException from acceptConnections");
         }
     }
 
@@ -68,7 +68,7 @@ public class Server {
                 dataIn = new DataInputStream(socket.getInputStream());
                 dataOut = new DataOutputStream(socket.getOutputStream());
             } catch(IOException ex){
-                System.out.println("IOException from SSC constructor");
+                //System.out.println("IOException from SSC constructor");
             }
         }
 
@@ -77,19 +77,27 @@ public class Server {
                 dataOut.writeInt(playerID);
                 dataOut.flush();
                 while(turnsMade != maxTurns || !isWon){
-                    	if(playerID == 1){
-                            player1ButtonNum = dataIn.readInt();
-                            System.out.println("Player 1 clicked Button #" + player1ButtonNum);
-                            player2.sendButtonNum(player1ButtonNum);
-                        } else{
-                            player2ButtonNum = dataIn.readInt();
-                            System.out.println("Player 2 clicked Button #" + player2ButtonNum);
-                            player1.sendButtonNum(player2ButtonNum);
+                    if(playerID == 1){
+                        player1ButtonNum = dataIn.readInt();
+                        if(player1ButtonNum == -10) {
+                            isWon = true;
+                            continue;
                         }
-                        turnsMade++;
+                        System.out.println("Player 1 clicked Button #" + player1ButtonNum);
+                        player2.sendButtonNum(player1ButtonNum);
+                    } else{
+                        player2ButtonNum = dataIn.readInt();
+                        if(player1ButtonNum == -10) {
+                            isWon = true;
+                            continue;
+                        }
+                        System.out.println("Player 2 clicked Button #" + player2ButtonNum);
+                        player1.sendButtonNum(player2ButtonNum);
+                    }
+                    turnsMade++;
                 }
             } catch (IOException ex){
-                System.out.println("IOException from run() SSC");
+                //System.out.println("IOException from run() SSC");
             }
             System.out.println("Player #"+ playerID+ " finished the game.");
         }
@@ -99,7 +107,7 @@ public class Server {
                 dataOut.writeInt(n);
                 dataOut.flush();
             } catch(IOException ex){
-                System.out.println("IOException from sendButtonNum() SSC");
+                //System.out.println("IOException from sendButtonNum() SSC");
             }
         }
     }
