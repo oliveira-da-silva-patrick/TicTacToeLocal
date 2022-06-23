@@ -33,6 +33,10 @@ public class Server {
         }
     }
 
+    /**
+     * waits for both players to be connected and sets the connections to the players
+     * player numbers are also set correctly
+     */
     public void acceptConnections(){
         try{
             System.out.println("Waiting for connections...");
@@ -55,6 +59,9 @@ public class Server {
         }
     }
 
+    /**
+     * Inner class to allow server-client communication
+     */
     private class ServerSideConnection implements Runnable {
         private Socket socket;
         private DataInputStream dataIn;
@@ -72,6 +79,10 @@ public class Server {
             }
         }
 
+        /**
+         * runs the game by getting the sent button, and sending it to the correct player, to keep track of turns
+         * also checks for wins and draws (by checking the turnsMade)
+         */
         public void run(){
             try{
                 dataOut.writeInt(playerID);
